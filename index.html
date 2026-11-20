@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cooperativa Futura · Preparazione file Spoke</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <img src="logo.png" alt="Futura impresa sociale" class="logo">
+  <div class="title">
+    <h1>Preparazione file Spoke</h1>
+    <p>Ritiro ingombranti · coordinate dall'indirizzario ANNCSU</p>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>1. Scegli il comune</h2>
+    <select id="comune">
+      <option value="arezzo">Arezzo (051002)</option>
+      <option value="civitella">Civitella in Val di Chiana (051016)</option>
+      <option value="cortona">Cortona (051017)</option>
+      <option value="castiglion_fiorentino">Castiglion Fiorentino (051012)</option>
+      <option value="monte_san_savino">Monte San Savino (051025)</option>
+      <option value="lucignano">Lucignano (051021)</option>
+      <option value="foiano">Foiano della Chiana (051018)</option>
+    </select>
+    <p id="nota-comune" class="hint"></p>
+  </section>
+
+  <section class="card">
+    <h2>2. Carica l'estrazione dei ritiri</h2>
+    <p class="hint">File Excel (.xlsx) o CSV con le colonne Case SAP, Soggetto, Indirizzo e Note. Il file resta nel tuo browser: non viene inviato a nessun server.</p>
+    <input type="file" id="file" accept=".xlsx,.xls,.csv">
+    <button id="run" disabled>Elabora</button>
+  </section>
+
+  <section class="card" id="risultato" hidden>
+    <h2>3. Risultato</h2>
+    <div id="riepilogo" class="riepilogo"></div>
+    <button id="scarica" disabled>Scarica file per Spoke (.xlsx)</button>
+    <h3>Righe da controllare a mano</h3>
+    <div class="tabella-wrap">
+      <table id="report">
+        <thead><tr><th>Riga</th><th>Case SAP</th><th>Soggetto</th><th>Indirizzo</th><th>Motivo</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card istruzioni">
+    <h2>Come si usa</h2>
+    <ol>
+      <li>Scegli il comune.</li>
+      <li>Carica il file Excel dell'estrazione e premi <strong>Elabora</strong>.</li>
+      <li>Controlla le righe nella tabella: sono quelle con coordinate mancanti o incerte.</li>
+      <li>Scarica il file e importalo in Spoke. Nella schermata di preview verifica che <em>Address Line 1</em> sia mappato sull'indirizzo.</li>
+    </ol>
+    <p class="hint">Foiano della Chiana: l'indirizzario non basta, le coordinate si prendono da Google Maps.</p>
+  </section>
+</main>
+
+<footer class="piede">
+  Strumento interno per gli operatori · Cooperativa Futura impresa sociale · non è un sistema ufficiale di Sei Toscana o del Comune
+</footer>
+
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="matcher.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

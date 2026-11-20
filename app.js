@@ -1,0 +1,125 @@
+/* app.js - interfaccia: lettura Excel/CSV, abbinamento, scarico xlsx.
+ * Tutto avviene nel browser. Nessuna richiesta di rete con i dati della lista. */
+(function () {
+  "use strict";
+
+  var NOTE_COMUNE = {
+    foiano: "Foiano: l'indirizzario non contiene coordinate utili. Le righe vanno completate con Google Maps."
+  };
+
+  var comuneSel = document.getElementById("comune");
+  var fileInp = document.getElementById("file");
+  var runBtn = document.getElementById("run");
+  var dlBtn = document.getElementById("scarica");
+  var box = document.getElementById("risultato");
+  var riepilogo = document.getElementById("riepilogo");
+  var tbody = document.querySelector("#report tbody");
+  var notaComune = document.getElementById("nota-comune");
+
+  var cache = {};     // indici già caricati
+  var ultimo = null;  // ultimo risultato, per il download
+
+  function aggiornaNota() {
+    notaComune.textContent = NOTE_COMUNE[comuneSel.value] || "";
+  }
+
+  function caricaIndice(comune) {
+    if (cache[comune]) return Promise.resolve(cache[comune]);
+    return fetch("data/" + comune + ".json")
+      .then(function (r) {
+        if (!r.ok) throw new Error("indice non trovato: " + comune);
+        return r.json();
+      })
+      .then(function (j) { cache[comune] = j; return j; });
+  }
+
+  function leggiLista(file) {
+    return file.arrayBuffer().then(function (buf) {
+      var wb = XLSX.read(buf, { type: "array", raw: false });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var righe = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
+      if (!righe.length) throw new Error("il file è vuoto");
+      var h = righe[0].map(function (x) { return String(x).trim().toLowerCase(); });
+      function col(k) {
+        for (var i = 0; i < h.length; i++) if (h[i].indexOf(k) !== -1) return i;
+        return -1;
+      }
+      var ci = { case: col("case"), sogg: col("soggetto"), addr: col("indirizzo"), note: col("note") };
+      if (ci.addr === -1) throw new Error("colonna Indirizzo non trovata nell'intestazione");
+      var out = [];
+      for (var r = 1; r < righe.length; r++) {
+        var row = righe[r];
+        if (!row.some(function (c) { return String(c).trim() !== ""; })) continue;
+        function g(i) { return i === -1 || i === undefined ? "" : String(row[i] === undefined ? "" : row[i]).trim(); }
+        out.push({ case: g(ci.case), sogg: g(ci.sogg), addr: g(ci.addr), note: g(ci.note) });
+      }
+      return out;
+    });
+  }
+
+  function mostraRisultato(comune, res) {
+    var tot = res.results.length;
+    var conCoord = res.results.filter(function (r) { return r.lat !== ""; }).length;
+    riepilogo.textContent = "Comune: " + comune.replace(/_/g, " ") + " · righe: " + tot +
+      " · con coordinate: " + conCoord + " · da controllare: " + res.report.length;
+
+    tbody.innerHTML = "";
+    res.report.forEach(function (r) {
+      var tr = document.createElement("tr");
+      [r.riga, r.case, r.sogg, r.addr, r.motivo].forEach(function (v) {
+        var td = document.createElement("td");
+        td.textContent = v;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    box.hidden = false;
+    dlBtn.disabled = false;
+  }
+
+  function scaricaXlsx(comune, res) {
+    var sheet = [SpokeMatcher.OUT_HEADER];
+    res.results.forEach(function (r) {
+      sheet.push([
+        r.addr, r.sogg, r.case, r.mat, r.istr, r.flag,
+        r.lat === "" ? "" : Number(r.lat),
+        r.lon === "" ? "" : Number(r.lon)
+      ]);
+    });
+    var rep = [["Riga", "Case SAP", "Soggetto", "Indirizzo", "Motivo"]];
+    res.report.forEach(function (r) { rep.push([r.riga, r.case, r.sogg, r.addr, r.motivo]); });
+
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet), "Spoke");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rep), "Da controllare");
+    XLSX.writeFile(wb, "spoke_" + comune + ".xlsx");
+  }
+
+  comuneSel.addEventListener("change", aggiornaNota);
+  fileInp.addEventListener("change", function () { runBtn.disabled = !fileInp.files.length; });
+
+  runBtn.addEventListener("click", function () {
+    var comune = comuneSel.value;
+    var file = fileInp.files[0];
+    if (!file) return;
+    runBtn.disabled = true;
+    riepilogo.textContent = "Elaborazione in corso...";
+    box.hidden = false;
+    Promise.all([caricaIndice(comune), leggiLista(file)])
+      .then(function (v) {
+        ultimo = { comune: comune, res: SpokeMatcher.process(v[1], v[0], comune) };
+        mostraRisultato(comune, ultimo.res);
+      })
+      .catch(function (e) {
+        riepilogo.textContent = "Errore: " + e.message;
+        dlBtn.disabled = true;
+      })
+      .then(function () { runBtn.disabled = false; });
+  });
+
+  dlBtn.addEventListener("click", function () {
+    if (ultimo) scaricaXlsx(ultimo.comune, ultimo.res);
+  });
+
+  aggiornaNota();
+})();
