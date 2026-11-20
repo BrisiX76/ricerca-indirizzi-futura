@@ -87,8 +87,26 @@
     });
   }
 
-  function leggiLista(file) {
-    return apriFile(file).then(function (righe) {
+  // Più file (anche più zip): si uniscono, con l'intestazione presa dal primo.
+  // I ritiri con lo stesso Case SAP compaiono una volta sola.
+  var duplicatiRimossi = 0;
+  function leggiListe(files) {
+    return Promise.all(Array.prototype.map.call(files, apriFile)).then(function (liste) {
+      var unite = [];
+      liste.forEach(function (righe, k) {
+        righe.forEach(function (riga, j) {
+          if (k > 0 && j === 0) return;
+          unite.push(riga);
+        });
+      });
+      return unite;
+    }).then(function (righe) {
+      return righe;
+    });
+  }
+
+  function leggiLista(files) {
+    return leggiListe(files).then(function (righe) {
       if (!righe.length) throw new Error("il file è vuoto");
       var h = righe[0].map(function (x) { return String(x).trim().toLowerCase(); });
       function col(k) {
@@ -97,12 +115,16 @@
       }
       var ci = { case: col("case"), sogg: col("soggetto"), addr: col("indirizzo"), note: col("note") };
       if (ci.addr === -1) throw new Error("colonna Indirizzo non trovata nell'intestazione");
-      var out = [];
+      var out = [], visti = {};
+      duplicatiRimossi = 0;
       for (var r = 1; r < righe.length; r++) {
         var row = righe[r];
         if (!row.some(function (c) { return String(c).trim() !== ""; })) continue;
         function g(i) { return i === -1 || i === undefined ? "" : String(row[i] === undefined ? "" : row[i]).trim(); }
-        out.push({ case: g(ci.case), sogg: g(ci.sogg), addr: g(ci.addr), note: g(ci.note) });
+        var item = { case: g(ci.case), sogg: g(ci.sogg), addr: g(ci.addr), note: g(ci.note) };
+        if (item.case && visti[item.case]) { duplicatiRimossi++; continue; }
+        if (item.case) visti[item.case] = true;
+        out.push(item);
       }
       return out;
     });
@@ -112,6 +134,7 @@
     var tot = res.results.length;
     var conCoord = res.results.filter(function (r) { return r.lat !== ""; }).length;
     riepilogo.textContent = "Comune: " + comune.replace(/_/g, " ") + " · righe: " + tot +
+      (duplicatiRimossi ? " · duplicati rimossi: " + duplicatiRimossi : "") +
       " · con coordinate: " + conCoord + " · da controllare: " + res.report.length;
 
     tbody.innerHTML = "";
@@ -151,12 +174,12 @@
 
   runBtn.addEventListener("click", function () {
     var comune = comuneSel.value;
-    var file = fileInp.files[0];
-    if (!file) return;
+    var files = fileInp.files;
+    if (!files || !files.length) return;
     runBtn.disabled = true;
     riepilogo.textContent = "Elaborazione in corso...";
     box.hidden = false;
-    leggiLista(file)
+    leggiLista(files)
       .then(function (righe) {
         var scelta = comuneSel.value;
         var assegnati = righe.map(function (r, i) {
