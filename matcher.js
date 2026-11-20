@@ -31,7 +31,7 @@
   }
 
   function normName(name) {
-    var n = expandSaints(norm(name));
+    var n = expandSaints(norm(name)).replace(/\bMONSIGNOR\b/, "MONSIGNORE");
     n = n.replace(/^LOC\.? /, "LOCALITA ");
     n = n.replace(/^P\.?ZZA /, "PIAZZA ");
     n = n.replace(/^V\.? /, "VIA ");
@@ -84,6 +84,11 @@
     var names = [name];
     var bareSt = name.replace(/^STRADA COMUNALE (DI |DA |DEL |DELLA )?/, "");
     if (bareSt !== name) names.push("LOCALITA " + bareSt);
+    // "PONTE ALLA CHIASSA PER MARCENA" o "CECILIANO PER PATRIGNONE": provo entrambe le parti
+    var src = bareSt !== name ? bareSt : name;
+    if (src.indexOf(" PER ") !== -1) {
+      src.split(" PER ").forEach(function (pt) { names.push("LOCALITA " + pt); });
+    }
     if (name.indexOf("LOCALITA") !== 0) {
       names.push("LOCALITA " + name);
       var bare = name.replace(/^(VIA|VIALE|PIAZZA|LARGO) (DI |DEL |DELLA )?/, "");
