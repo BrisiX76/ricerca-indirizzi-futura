@@ -145,7 +145,7 @@
     var sheet = [SpokeMatcher.OUT_HEADER];
     res.results.forEach(function (r) {
       sheet.push([
-        r.addr, r.sogg, r.case, r.mat, r.istr, r.flag,
+        r.addr, r.sogg, r.tel, r.case, r.mat, r.istr, r.flag,
         r.lat === "" ? "" : Number(r.lat),
         r.lon === "" ? "" : Number(r.lon)
       ]);

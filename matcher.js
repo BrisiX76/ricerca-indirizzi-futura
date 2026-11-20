@@ -12,7 +12,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  var OUT_HEADER = ["Address Line 1", "soggetto", "case_sap", "materiali",
+  var OUT_HEADER = ["Address Line 1", "soggetto", "telefono", "case_sap", "materiali",
     "istruzioni_accesso", "da_verificare", "lat", "lon"];
 
   // Comuni per cui l'indirizzario non basta: coordinate da Google Maps.
@@ -123,8 +123,11 @@
   var MAT_START = /(^|\s)(\d{1,2})\s+(?=[A-Za-z\u00C0-\u024F])/;
   function splitNote(note, sogg, addr) {
     var t = String(note || "").replace(/Note riferimento:/gi, " ");
+    // telefono: primo numero trovato (cellulare 3xx o sequenza lunga di cifre), anche attaccato al nome
+    var telM = /3\d{2}[ .]?\d{6,7}/.exec(t) || /\+?\d[\d ]{7,}\d/.exec(t);
+    var tel = telM ? telM[0].replace(/\s+/g, " ").trim() : "";
     // telefoni: cellulari italiani (3xx...) o sequenze lunghe di cifre
-    t = t.replace(/\b3\d{2} ?\d{6,7}\b/g, " ").replace(/\b\d{9,}\b/g, " ");
+    t = t.replace(/3\d{2}[ .]?\d{6,7}/g, " ").replace(/\+?\d[\d ]{7,}\d/g, " ");
     var m = MAT_START.exec(t);
     var head = t, tail = "";
     if (m) {
@@ -160,7 +163,7 @@
     if (extra.length) head = (head + " " + extra.join(" ")).trim();
     var mat = tail.split(";").map(function (x) { return x.replace(/["\u201C\u201D]/g, "").replace(/\s+/g, " ").trim(); })
       .filter(function (x) { return x; }).join("; ");
-    return { mat: mat, istr: head };
+    return { mat: mat, istr: head, tel: tel };
   }
 
   function cleanMateriali(note) {
@@ -211,7 +214,7 @@
       }
       results.push({
         addr: addrOut, sogg: r.sogg, case: r.case,
-        mat: nota.mat, istr: nota.istr, flag: flag,
+        mat: nota.mat, istr: nota.istr, tel: nota.tel, flag: flag,
         lat: lat, lon: lon
       });
       if (flag === "sì" || why.length) {
