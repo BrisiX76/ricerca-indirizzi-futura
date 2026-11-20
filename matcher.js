@@ -118,6 +118,51 @@
     return CITTA[m[2].trim()] || null;
   }
 
+  // Separa la nota in: materiali (solo voci "N MATERIALE", separate da "; ")
+  // e istruzioni di accesso (tutto il resto, senza nomi, telefoni e civico ripetuto).
+  var MAT_START = /(^|\s)(\d{1,2})\s+(?=[A-Za-z\u00C0-\u024F])/;
+  function splitNote(note, sogg, addr) {
+    var t = String(note || "").replace(/Note riferimento:/gi, " ");
+    // telefoni: cellulari italiani (3xx...) o sequenze lunghe di cifre
+    t = t.replace(/\b3\d{2} ?\d{6,7}\b/g, " ").replace(/\b\d{9,}\b/g, " ");
+    var m = MAT_START.exec(t);
+    var head = t, tail = "";
+    if (m) {
+      var start = m.index + m[1].length;
+      head = t.slice(0, start);
+      tail = t.slice(start);
+    }
+    // nomi del soggetto (anche attaccati, es. "LoVasco" per "LO VASCO")
+    var tokens = {}, joined = norm(sogg).replace(/\s/g, "").toLowerCase();
+    norm(sogg).split(" ").forEach(function (w) { tokens[w.toLowerCase()] = true; });
+    // "CIVICO 145", "CIVICO: 124" in maiuscolo: sono annotazioni dell'operatore, il civico è già in indirizzo.
+    // Il "civico 26" minuscolo in una proposta di ritiro resta.
+    head = head.replace(/CIVICO\s*:?\s*\d+(\s+\d+)*/g, " ").replace(/\bcivico\s+n\b\.?\s*/gi, "civico ");
+    // il nome della via è già nella colonna indirizzo
+    var via = addr ? norm(addr).replace(/\s+-\s+.*$/, "").replace(/,.*$/, "").replace(/\s+\d+(\s*\/\s*[A-Z0-9]+)?(\s+[A-Z0-9]+)*$/, "").replace(/\s+LETTERA.*$/, "") : "";
+    if (addr) {
+      var civAddr = norm(addr).replace(/\s+-\s+.*$/, "").replace(/,.*$/, "").match(/\s(\d+(\s*\/\s*[A-Z0-9]+)?)$/);
+      if (civAddr) head = head.replace(new RegExp("(^|\\s)" + civAddr[1].replace(/\s+/g, "") + "(?=\\s|$)"), " ").replace(/\s+/g, " ");
+    }
+    if (via && via.length > 3) {
+      head = head.replace(new RegExp(via.split(" ").map(function (w) { return w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }).join("\\s+"), "i"), " ");
+    }
+    head = head.split(/\s+/).filter(function (w) {
+      var lw = w.toLowerCase().replace(/[^a-z]/g, "");
+      if (!lw) return /[0-9]/.test(w); // numeri del civico o di "altro lato": restano
+      if (tokens[lw]) return false;
+      if (lw.length >= 4 && joined.indexOf(lw) !== -1) return false;
+      return true;
+    }).join(" ").replace(/^[\s;,.\-]+|[\s;,.\-]+$/g, "");
+    // frasi operative finite in materiali: vanno nelle istruzioni
+    var extra = [];
+    tail = tail.replace(/\b(DETTO DI [A-Z ]+|IMBALLATO IN SICUREZZA|ESPONE[A-Z ]*)\b/g, function (m) { extra.push(m.trim()); return " "; });
+    if (extra.length) head = (head + " " + extra.join(" ")).trim();
+    var mat = tail.split(";").map(function (x) { return x.replace(/["\u201C\u201D]/g, "").replace(/\s+/g, " ").trim(); })
+      .filter(function (x) { return x; }).join("; ");
+    return { mat: mat, istr: head };
+  }
+
   function cleanMateriali(note) {
     var t = String(note || "").replace(/Note riferimento:/gi, "").replace(PHONE_RE, "");
     return t.replace(/\s+/g, " ").replace(/^[\s;]+|[\s;]+$/g, "");
@@ -131,6 +176,7 @@
       var n = r.riga || i + 2; // numero riga nel file originale (intestazione = 1)
       var parsed = parseAddress(r.addr);
       var flag = "no", why = [], lat = "", lon = "", addrOut;
+      var nota = splitNote(r.note, r.sogg, r.addr);
       if (!comune) {
         addrOut = r.addr;
         flag = "sì";
@@ -165,7 +211,7 @@
       }
       results.push({
         addr: addrOut, sogg: r.sogg, case: r.case,
-        mat: cleanMateriali(r.note), istr: "", flag: flag,
+        mat: nota.mat, istr: nota.istr, flag: flag,
         lat: lat, lon: lon
       });
       if (flag === "sì" || why.length) {
@@ -182,6 +228,7 @@
     lookup: lookup,
     process: process,
     comuneDaIndirizzo: comuneDaIndirizzo,
+    splitNote: splitNote,
     NO_INDEX: NO_INDEX
   };
 });
