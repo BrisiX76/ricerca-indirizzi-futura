@@ -34,16 +34,17 @@
     return n;
   }
 
-  var CITY_RE = /^(.*\d)\s*[-,]\s*([A-Z][A-Z ]+)$/;
+  var CITY_RE = /^(.*\S)\s*[-,]\s*([A-Z][A-Z ']+)$/;
   var ADDR_RE = /^(.*?[A-Z])\s+(\d+)(?:\s*[\/ ]\s*([A-Z]|\d+))?(?:\s+\d+)*$/;
-  var NOTE_CIVICO_RE = /CIVICO\s*N?\.?\s*(\d+)\s*(?:[\/ -]\s*([A-Z]|\d+))?/i;
+  var NOTE_CIVICO_RE = /CIVICO\s*N?\.?\s*(\d+)(?:\s*\/\s*([A-Z]|\d+)(?![A-Za-z]))?/i;
   var PHONE_RE = /\+?\d[\d ]{7,}\d/g;
 
   function parseAddress(addr) {
     var a = norm(addr);
     var m = CITY_RE.exec(a);
     if (m) a = m[1];
-    m = ADDR_RE.exec(a.trim());
+    a = a.trim().replace(/\s+LETTERA\s+/, "/");
+    m = ADDR_RE.exec(a);
     if (!m) return null;
     return { name: normName(m[1]), civ: m[2], esp: norm(m[3] || "") };
   }
@@ -55,6 +56,22 @@
       if (m) label += ", " + m[2];
     }
     return label;
+  }
+
+  // "VIA M. MANNELLI 15" -> "VIA MARIO MANNELLI 15": stesso cognome, iniziale compatibile.
+  function initialFallback(idx, name, civ, esp) {
+    var parts = name.split(" ");
+    var init = -1;
+    for (var k = 0; k < parts.length; k++) if (/^[A-Z]\.?$/.test(parts[k])) { init = k; break; }
+    if (init === -1 || parts.length < 3) return null;
+    var initial = parts[init].charAt(0), surname = parts[parts.length - 1], type = parts[0];
+    for (var key in idx) {
+      var p = key.split("|");
+      if (p[1] !== civ || p[2] !== esp || p[0].slice(-(surname.length + 1)) !== " " + surname) continue;
+      var ow = p[0].split(" ");
+      if (ow.length >= 3 && ow[0] === type && ow[1].charAt(0) === initial) return idx[key];
+    }
+    return null;
   }
 
   // idx: oggetto { "ODONIMO|CIVICO|ESPONENTE": [lat, lon, rank] }
@@ -72,6 +89,8 @@
         if (hit) return { hit: hit, found: names[i], note: tries[t][1] };
       }
     }
+    var fb = initialFallback(idx, name, civ, esp);
+    if (fb) return { hit: fb, found: name, note: "" };
     return null;
   }
 
