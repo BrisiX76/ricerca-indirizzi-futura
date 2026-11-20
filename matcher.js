@@ -41,7 +41,7 @@
 
   var CITY_RE = /^(.*\S)\s*[-,]\s*([A-Z][A-Z ']+)$/;
   var ADDR_RE = /^(.*?[A-Z])\s+(\d+)(?:\s*[\/ ]\s*([A-Z]|\d+))?(?:\s+(?:\d+|[A-Z]))*$/;
-  var NOTE_CIVICO_RE = /CIVICO\s*N?\.?\s*(\d+)(?:\s*\/\s*([A-Z]|\d+)(?![A-Za-z]))?/i;
+  var NOTE_CIVICO_RE = /CIVICO\s*:?\s*N?\.?\s*(\d+)(?:\s*\/\s*([A-Z]|\d+)(?![A-Za-z]))?/i;
   var PHONE_RE = /\+?\d[\d ]{7,}\d/g;
 
   function parseAddress(addr) {
