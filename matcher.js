@@ -25,8 +25,13 @@
       .replace(/\s+/g, " ").trim();
   }
 
+  function expandSaints(n) {
+    n = n.replace(/\bS\. ?ANDREA\b/g, "SANT ANDREA").replace(/\bS\. ?FIRMINA\b/g, "SANTA FIRMINA");
+    return n.replace(/\bS\. ?/g, "SAN ");
+  }
+
   function normName(name) {
-    var n = norm(name);
+    var n = expandSaints(norm(name));
     n = n.replace(/^LOC\.? /, "LOCALITA ");
     n = n.replace(/^P\.?ZZA /, "PIAZZA ");
     n = n.replace(/^V\.? /, "VIA ");
@@ -35,7 +40,7 @@
   }
 
   var CITY_RE = /^(.*\S)\s*[-,]\s*([A-Z][A-Z ']+)$/;
-  var ADDR_RE = /^(.*?[A-Z])\s+(\d+)(?:\s*[\/ ]\s*([A-Z]|\d+))?(?:\s+\d+)*$/;
+  var ADDR_RE = /^(.*?[A-Z])\s+(\d+)(?:\s*[\/ ]\s*([A-Z]|\d+))?(?:\s+(?:\d+|[A-Z]))*$/;
   var NOTE_CIVICO_RE = /CIVICO\s*N?\.?\s*(\d+)(?:\s*\/\s*([A-Z]|\d+)(?![A-Za-z]))?/i;
   var PHONE_RE = /\+?\d[\d ]{7,}\d/g;
 
@@ -77,6 +82,8 @@
   // idx: oggetto { "ODONIMO|CIVICO|ESPONENTE": [lat, lon, rank] }
   function lookup(idx, name, civ, esp) {
     var names = [name];
+    var bareSt = name.replace(/^STRADA COMUNALE (DI |DA |DEL |DELLA )?/, "");
+    if (bareSt !== name) names.push("LOCALITA " + bareSt);
     if (name.indexOf("LOCALITA") !== 0) {
       names.push("LOCALITA " + name);
       var bare = name.replace(/^(VIA|VIALE|PIAZZA|LARGO) (DI |DEL |DELLA )?/, "");
