@@ -54,7 +54,7 @@
     return XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
   }
 
-  // Accetta anche lo zip: dentro deve esserci un solo file Excel o CSV.
+  // Accetta anche lo zip con uno o più file Excel o CSV dentro.
   function apriFile(file) {
     return file.arrayBuffer().then(function (buf) {
       if (!/\.zip$/i.test(file.name)) {
@@ -68,11 +68,20 @@
           }
         });
         if (!candidati.length) throw new Error("nello zip non c'è un file Excel o CSV");
-        if (candidati.length > 1) {
-          throw new Error("nello zip ci sono più file (" + candidati.map(function (c) { return c.nome; }).join(", ") + "): tienine uno solo");
-        }
-        return candidati[0].voce.async("uint8array").then(function (bytes) {
-          return righeDaBytes(bytes, candidati[0].nome);
+        // più file nello zip (es. una gita su due comuni): si uniscono, intestazione presa dal primo
+        return Promise.all(candidati.map(function (c) {
+          return c.voce.async("uint8array").then(function (bytes) {
+            return righeDaBytes(bytes, c.nome);
+          });
+        })).then(function (liste) {
+          var unite = [];
+          liste.forEach(function (righe, k) {
+            righe.forEach(function (riga, j) {
+              if (k > 0 && j === 0) return; // intestazione ripetuta
+              unite.push(riga);
+            });
+          });
+          return unite;
         });
       });
     });
@@ -147,10 +156,39 @@
     runBtn.disabled = true;
     riepilogo.textContent = "Elaborazione in corso...";
     box.hidden = false;
-    Promise.all([caricaIndice(comune), leggiLista(file)])
-      .then(function (v) {
-        ultimo = { comune: comune, res: SpokeMatcher.process(v[1], v[0], comune) };
-        mostraRisultato(comune, ultimo.res);
+    leggiLista(file)
+      .then(function (righe) {
+        var scelta = comuneSel.value;
+        var assegnati = righe.map(function (r, i) {
+          var c = scelta === "auto" ? SpokeMatcher.comuneDaIndirizzo(r.addr) : scelta;
+          return { riga: i + 2, c: c || "", r: r };
+        });
+        var nomi = {};
+        assegnati.forEach(function (a) { if (a.c) nomi[a.c] = true; });
+        var chiavi = Object.keys(nomi);
+        return Promise.all(chiavi.map(function (c) {
+          return SpokeMatcher.NO_INDEX[c] ? Promise.resolve({}) : caricaIndice(c);
+        })).then(function (indici) {
+          var idxPer = {};
+          chiavi.forEach(function (c, k) { idxPer[c] = indici[k]; });
+          var gruppi = {};
+          assegnati.forEach(function (a) {
+            (gruppi[a.c] = gruppi[a.c] || []).push(a);
+          });
+          var results = [], report = [];
+          Object.keys(gruppi).forEach(function (c) {
+            var g = gruppi[c];
+            var rows = g.map(function (a) { return { riga: a.riga, case: a.r.case, sogg: a.r.sogg, addr: a.r.addr, note: a.r.note }; });
+            var out = SpokeMatcher.process(rows, idxPer[c] || {}, c);
+            results = results.concat(out.results.map(function (x, k) { x.riga = g[k].riga; return x; }));
+            report = report.concat(out.report);
+          });
+          results.sort(function (a, b) { return a.riga - b.riga; });
+          report.sort(function (a, b) { return a.riga - b.riga; });
+          var nomeComune = scelta === "auto" ? "misto" : scelta;
+          ultimo = { comune: nomeComune, res: { results: results, report: report } };
+          mostraRisultato(nomeComune, ultimo.res);
+        });
       })
       .catch(function (e) {
         riepilogo.textContent = "Errore: " + e.message;

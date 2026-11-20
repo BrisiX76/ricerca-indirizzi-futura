@@ -101,6 +101,18 @@
     return null;
   }
 
+  // Comune dal suffisso dell'indirizzo, es. "VIA X 4 - MONTE SAN SAVINO" -> "monte_san_savino"
+  var CITTA = {
+    "AREZZO": "arezzo", "CIVITELLA IN VAL DI CHIANA": "civitella", "CORTONA": "cortona",
+    "CASTIGLION FIORENTINO": "castiglion_fiorentino", "MONTE SAN SAVINO": "monte_san_savino",
+    "LUCIGNANO": "lucignano", "FOIANO DELLA CHIANA": "foiano"
+  };
+  function comuneDaIndirizzo(addr) {
+    var m = CITY_RE.exec(norm(addr));
+    if (!m) return null;
+    return CITTA[m[2].trim()] || null;
+  }
+
   function cleanMateriali(note) {
     var t = String(note || "").replace(/Note riferimento:/gi, "").replace(PHONE_RE, "");
     return t.replace(/\s+/g, " ").replace(/^[\s;]+|[\s;]+$/g, "");
@@ -111,7 +123,7 @@
     var results = [], report = [];
     var noIndex = !!NO_INDEX[comune];
     rows.forEach(function (r, i) {
-      var n = i + 2; // numero riga nel file originale (intestazione = 1)
+      var n = r.riga || i + 2; // numero riga nel file originale (intestazione = 1)
       var parsed = parseAddress(r.addr);
       var flag = "no", why = [], lat = "", lon = "", addrOut;
       if (noIndex) {
@@ -140,7 +152,7 @@
         } else {
           flag = "sì";
           why.push("coordinate non trovate: geocodifica da indirizzo");
-          addrOut = streetLabel(name, civ, esp, r.addr, false);
+          addrOut = streetLabel(name, civ, esp, r.addr, true);
         }
       }
       results.push({
@@ -161,6 +173,7 @@
     parseAddress: parseAddress,
     lookup: lookup,
     process: process,
+    comuneDaIndirizzo: comuneDaIndirizzo,
     NO_INDEX: NO_INDEX
   };
 });
