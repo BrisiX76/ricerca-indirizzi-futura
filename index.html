@@ -32,8 +32,8 @@
 
   <section class="card">
     <h2>2. Carica l'estrazione dei ritiri</h2>
-    <p class="hint">File Excel (.xlsx) o CSV con le colonne Case SAP, Soggetto, Indirizzo e Note. Il file resta nel tuo browser: non viene inviato a nessun server.</p>
-    <input type="file" id="file" accept=".xlsx,.xls,.csv">
+    <p class="hint">File Excel (.xlsx), CSV o zip con un solo file dentro con le colonne Case SAP, Soggetto, Indirizzo e Note. Il file resta nel tuo browser: non viene inviato a nessun server.</p>
+    <input type="file" id="file" accept=".zip,.xlsx,.xls,.csv">
     <button id="run" disabled>Elabora</button>
   </section>
 
@@ -63,11 +63,12 @@
 </main>
 
 <footer class="piede">
-  Strumento interno per gli operatori · Cooperativa Futura impresa sociale · non è un sistema ufficiale di Sei Toscana o del Comune<br>versione 20/11/2026 (c)
+  Strumento interno per gli operatori · Cooperativa Futura impresa sociale · non è un sistema ufficiale di Sei Toscana o del Comune<br>versione 20/11/2026 (d)
 </footer>
 
 <script src="vendor/xlsx.full.min.js"></script>
-<script src="matcher.js?v=20261120c"></script>
-<script src="app.js?v=20261120c"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="matcher.js?v=20261120d"></script>
+<script src="app.js?v=20261120d"></script>
 </body>
 </html>

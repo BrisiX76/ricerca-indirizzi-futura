@@ -33,11 +33,53 @@
       .then(function (j) { cache[comune] = j; return j; });
   }
 
-  function leggiLista(file) {
+  // Testo di un CSV: prova UTF-8, altrimenti Windows-1252 (export spesso così).
+  function decodificaTesto(bytes) {
+    try {
+      return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch (e) {
+      return new TextDecoder("windows-1252").decode(bytes);
+    }
+  }
+
+  // Dal contenuto di un file (xlsx/xls/csv) ricava le righe grezze.
+  function righeDaBytes(bytes, nome) {
+    var wb;
+    if (/\.csv$/i.test(nome)) {
+      wb = XLSX.read(decodificaTesto(bytes), { type: "string", raw: false });
+    } else {
+      wb = XLSX.read(bytes, { type: "array", raw: false });
+    }
+    var ws = wb.Sheets[wb.SheetNames[0]];
+    return XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
+  }
+
+  // Accetta anche lo zip: dentro deve esserci un solo file Excel o CSV.
+  function apriFile(file) {
     return file.arrayBuffer().then(function (buf) {
-      var wb = XLSX.read(buf, { type: "array", raw: false });
-      var ws = wb.Sheets[wb.SheetNames[0]];
-      var righe = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
+      if (!/\.zip$/i.test(file.name)) {
+        return righeDaBytes(new Uint8Array(buf), file.name);
+      }
+      return JSZip.loadAsync(buf).then(function (zip) {
+        var candidati = [];
+        zip.forEach(function (percorso, voce) {
+          if (!voce.dir && !/^__MACOSX|^\./.test(percorso) && /\.(xlsx|xls|csv)$/i.test(percorso)) {
+            candidati.push({ nome: percorso, voce: voce });
+          }
+        });
+        if (!candidati.length) throw new Error("nello zip non c'è un file Excel o CSV");
+        if (candidati.length > 1) {
+          throw new Error("nello zip ci sono più file (" + candidati.map(function (c) { return c.nome; }).join(", ") + "): tienine uno solo");
+        }
+        return candidati[0].voce.async("uint8array").then(function (bytes) {
+          return righeDaBytes(bytes, candidati[0].nome);
+        });
+      });
+    });
+  }
+
+  function leggiLista(file) {
+    return apriFile(file).then(function (righe) {
       if (!righe.length) throw new Error("il file è vuoto");
       var h = righe[0].map(function (x) { return String(x).trim().toLowerCase(); });
       function col(k) {
