@@ -12,7 +12,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  var OUT_HEADER = ["Address Line 1", "soggetto", "telefono", "case_sap", "materiali",
+  var OUT_HEADER = ["Address Line 1", "telefono", "soggetto", "case_sap", "materiali",
     "istruzioni_accesso", "da_verificare", "lat", "lon"];
 
   // Comuni per cui l'indirizzario non basta: coordinate da Google Maps.
