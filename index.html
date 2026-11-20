@@ -11,35 +11,20 @@
   <img src="logo.png" alt="Futura impresa sociale" class="logo">
   <div class="title">
     <h1>Preparazione file Spoke</h1>
-    <p>Ritiro ingombranti · coordinate dall'indirizzario ANNCSU</p>
+    <p>Ritiro ingombranti</p>
   </div>
 </header>
 
 <main>
   <section class="card">
-    <h2>1. Scegli il comune</h2>
-    <select id="comune">
-      <option value="auto" selected>Automatico (dal comune scritto nell'indirizzo)</option>
-      <option value="arezzo">Arezzo (051002)</option>
-      <option value="civitella">Civitella in Val di Chiana (051016)</option>
-      <option value="cortona">Cortona (051017)</option>
-      <option value="castiglion_fiorentino">Castiglion Fiorentino (051012)</option>
-      <option value="monte_san_savino">Monte San Savino (051025)</option>
-      <option value="lucignano">Lucignano (051021)</option>
-      <option value="foiano">Foiano della Chiana (051018)</option>
-    </select>
-    <p id="nota-comune" class="hint"></p>
-  </section>
-
-  <section class="card">
-    <h2>2. Carica l'estrazione dei ritiri</h2>
+    <h2>1. Carica l'estrazione dei ritiri</h2>
     <p class="hint">File Excel (.xlsx), CSV o zip. Puoi selezionare più file insieme (es. due zone di Arezzo): vengono uniti in un unico file. con le colonne Case SAP, Soggetto, Indirizzo e Note. Il file resta nel tuo browser: non viene inviato a nessun server.</p>
     <input type="file" id="file" multiple accept=".zip,.xlsx,.xls,.csv">
     <button id="run" disabled>Elabora</button>
   </section>
 
   <section class="card" id="risultato" hidden>
-    <h2>3. Risultato</h2>
+    <h2>2. Risultato</h2>
     <div id="riepilogo" class="riepilogo"></div>
     <button id="scarica" disabled>Scarica file per Spoke (.xlsx)</button>
     <h3>Righe da controllare a mano</h3>
@@ -54,8 +39,7 @@
   <section class="card istruzioni">
     <h2>Come si usa</h2>
     <ol>
-      <li>Scegli il comune.</li>
-      <li>Carica il file Excel dell'estrazione e premi <strong>Elabora</strong>.</li>
+      <li>Carica l'estrazione dei ritiri (uno o più file) e premi <strong>Elabora</strong>. Il comune viene letto dall'indirizzo.</li>
       <li>Controlla le righe nella tabella: sono quelle con coordinate mancanti o incerte.</li>
       <li>Scarica il file e importalo in Spoke. Nella schermata di preview verifica che <em>Address Line 1</em> sia mappato sull'indirizzo.</li>
     </ol>
@@ -64,12 +48,12 @@
 </main>
 
 <footer class="piede">
-  Strumento interno per gli operatori · Cooperativa Futura impresa sociale · non è un sistema ufficiale di Sei Toscana o del Comune<br>versione 20/11/2026 (g)
+  Strumento interno per gli operatori · Cooperativa Futura impresa sociale · non è un sistema ufficiale di Sei Toscana o del Comune<br>versione 20/11/2026 (h)
 </footer>
 
 <script src="vendor/xlsx.full.min.js"></script>
 <script src="vendor/jszip.min.js"></script>
-<script src="matcher.js?v=20261120g"></script>
-<script src="app.js?v=20261120g"></script>
+<script src="matcher.js?v=20261120h"></script>
+<script src="app.js?v=20261120h"></script>
 </body>
 </html>

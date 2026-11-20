@@ -131,7 +131,11 @@
       var n = r.riga || i + 2; // numero riga nel file originale (intestazione = 1)
       var parsed = parseAddress(r.addr);
       var flag = "no", why = [], lat = "", lon = "", addrOut;
-      if (noIndex) {
+      if (!comune) {
+        addrOut = r.addr;
+        flag = "sì";
+        why.push("comune non riconosciuto nell'indirizzo");
+      } else if (noIndex) {
         flag = "sì";
         why.push("comune senza indirizzario: coordinate da Google Maps");
         addrOut = r.addr;

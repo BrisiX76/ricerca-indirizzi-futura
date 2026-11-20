@@ -3,25 +3,15 @@
 (function () {
   "use strict";
 
-  var NOTE_COMUNE = {
-    foiano: "Foiano: l'indirizzario non contiene coordinate utili. Le righe vanno completate con Google Maps."
-  };
-
-  var comuneSel = document.getElementById("comune");
   var fileInp = document.getElementById("file");
   var runBtn = document.getElementById("run");
   var dlBtn = document.getElementById("scarica");
   var box = document.getElementById("risultato");
   var riepilogo = document.getElementById("riepilogo");
   var tbody = document.querySelector("#report tbody");
-  var notaComune = document.getElementById("nota-comune");
 
   var cache = {};     // indici già caricati
   var ultimo = null;  // ultimo risultato, per il download
-
-  function aggiornaNota() {
-    notaComune.textContent = NOTE_COMUNE[comuneSel.value] || "";
-  }
 
   function caricaIndice(comune) {
     if (cache[comune]) return Promise.resolve(cache[comune]);
@@ -169,11 +159,9 @@
     XLSX.writeFile(wb, "spoke_" + comune + ".xlsx");
   }
 
-  comuneSel.addEventListener("change", aggiornaNota);
   fileInp.addEventListener("change", function () { runBtn.disabled = !fileInp.files.length; });
 
   runBtn.addEventListener("click", function () {
-    var comune = comuneSel.value;
     var files = fileInp.files;
     if (!files || !files.length) return;
     runBtn.disabled = true;
@@ -181,7 +169,7 @@
     box.hidden = false;
     leggiLista(files)
       .then(function (righe) {
-        var scelta = comuneSel.value;
+        var scelta = "auto";
         var assegnati = righe.map(function (r, i) {
           var c = scelta === "auto" ? SpokeMatcher.comuneDaIndirizzo(r.addr) : scelta;
           return { riga: i + 2, c: c || "", r: r };
@@ -224,5 +212,4 @@
     if (ultimo) scaricaXlsx(ultimo.comune, ultimo.res);
   });
 
-  aggiornaNota();
 })();
