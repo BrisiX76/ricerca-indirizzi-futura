@@ -139,9 +139,8 @@
         var mn = NOTE_CIVICO_RE.exec(r.note || "");
         if (mn) {
           var civN = mn[1], espN = norm(mn[2] || "");
-          if (civN !== civ || espN !== esp) {
-            why.push("civico da nota: " + civ + (esp ? "/" + esp : "") + " -> " + civN + (espN ? "/" + espN : ""));
-          }
+          // civico preso dalla nota: è corretto per regola, non va verificato
+          // (nessun motivo nel report)
           civ = civN; esp = espN;
         }
         var found = lookup(idx, name, civ, esp);
